@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -79,16 +79,28 @@ function FeedAction({
 
 export default function Videos() {
   const ranked = useRankedFeed();
+  const { id: selectedId } = useLocalSearchParams<{ id?: string }>();
   const { saved, liked, toggleSave, toggleLike } = useAppState();
   const [active, setActive] = useState(0);
   const [category, setCategory] = useState("Explore");
   const [commentsFor, setCommentsFor] = useState<FeedItem | null>(null);
   const [moreFor, setMoreFor] = useState<FeedItem | null>(null);
   const placeholder = (label: string) => Alert.alert(label, "No action is required right now.");
+  const prioritized = useMemo(() => {
+    if (!selectedId) return ranked;
+    const selected = ranked.find((item) => item.id === selectedId);
+    return selected ? [selected, ...ranked.filter((item) => item.id !== selectedId)] : ranked;
+  }, [ranked, selectedId]);
   const items =
     category === "Explore"
-      ? ranked
-      : ranked.filter((item) => item.topic === category);
+      ? prioritized
+      : prioritized.filter((item) => item.topic === category);
+  useEffect(() => {
+    if (selectedId) {
+      setCategory("Explore");
+      setActive(0);
+    }
+  }, [selectedId]);
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 });
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {

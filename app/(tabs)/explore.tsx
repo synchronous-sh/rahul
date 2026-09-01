@@ -5,7 +5,8 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "rea
 import { CourseArtwork } from "@/components/CourseArtwork";
 import { Progress } from "@/components/ui";
 import { colors } from "@/constants/theme";
-import { feed } from "@/data/content";
+import { feed, stories } from "@/data/content";
+import { videoCovers } from "@/data/videoCovers";
 import { useAppState } from "@/state/AppState";
 
 const continueCourses = [
@@ -25,7 +26,9 @@ const recommendedVideos = [feed[0], feed[2], feed[6], feed[8]];
 
 export default function Home() {
   const { saved, toggleSave } = useAppState();
-  const heroSaved = saved.includes(feed[6].id);
+  const discoverId = "ai-foundations";
+  const heroSaved = saved.includes(discoverId);
+  const openDiscoverCourse = () => router.push({ pathname: "/course/[id]", params: { id: "ai", title: "AI Foundations" } });
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -38,25 +41,25 @@ export default function Home() {
           <Text style={styles.discoverTitle}>Discover</Text>
         </View>
 
-        <View style={styles.hero}>
-          <Image source={feed[6].image} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <Pressable onPress={openDiscoverCourse} style={styles.hero}>
+          <CourseArtwork path="ai" title="AI Foundations" style={styles.heroArtwork} />
           <View style={styles.heroShade} />
           <View style={styles.heroCopy}>
-            <Text style={styles.heroEyebrow}>SCIENCE · VISUAL LESSON</Text>
-            <Text style={styles.heroTitle}>Why airplanes stay in the air</Text>
-            <Text style={styles.heroDescription}>A clear visual explanation of lift, pressure, and motion.</Text>
+            <Text style={styles.heroEyebrow}>ARTIFICIAL INTELLIGENCE · COURSE</Text>
+            <Text style={styles.heroTitle}>AI Foundations</Text>
+            <Text style={styles.heroDescription}>Understand how modern AI systems learn, reason, and use information.</Text>
             <View style={styles.heroActions}>
-              <Pressable onPress={() => router.push("/(tabs)/videos")} style={styles.startButton}>
+              <Pressable onPress={openDiscoverCourse} style={styles.startButton}>
                 <Ionicons name="play" size={14} color="#000" />
                 <Text style={styles.startText}>Start</Text>
               </Pressable>
-              <Pressable onPress={() => toggleSave(feed[6].id)} style={styles.secondaryButton}>
+              <Pressable onPress={() => toggleSave(discoverId)} style={styles.secondaryButton}>
                 <Ionicons name={heroSaved ? "bookmark" : "bookmark-outline"} size={15} color="#fff" />
                 <Text style={styles.secondaryText}>{heroSaved ? "Saved" : "Save"}</Text>
               </Pressable>
             </View>
           </View>
-        </View>
+        </Pressable>
 
         <SectionHeader title="Continue learning" action="See all" onPress={() => router.push("/(tabs)/learn")} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
@@ -83,8 +86,8 @@ export default function Home() {
         <SectionHeader title="Videos for you" action="Watch all" onPress={() => router.push("/(tabs)/videos")} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.videoRail}>
           {recommendedVideos.map((item) => (
-            <Pressable key={item.id} onPress={() => router.push("/(tabs)/videos")} style={styles.videoCard}>
-              <Image source={item.image} style={styles.videoImage} contentFit="cover" />
+            <Pressable key={item.id} onPress={() => router.push({ pathname: "/(tabs)/videos", params: { id: item.id } })} style={styles.videoCard}>
+              <Image source={videoCovers[item.id] ?? item.image} style={styles.videoImage} contentFit="cover" />
               <View style={styles.videoShade} />
               <View style={styles.videoPlay}><Ionicons name="play" size={13} color="#000" /></View>
               <Text style={styles.videoDuration}>{item.video ? "3:12" : "2:48"}</Text>
@@ -95,12 +98,12 @@ export default function Home() {
 
         <SectionHeader title="Today’s news" action="More news" onPress={() => router.push("/(tabs)/news")} />
         <View style={styles.newsList}>
-          {feed.slice(20, 23).map((item) => (
-            <Pressable key={item.id} onPress={() => router.push("/(tabs)/news")} style={styles.newsRow}>
+          {stories.slice(0, 3).map((item) => (
+            <Pressable key={item.id} onPress={() => router.push(`/story/${item.id}`)} style={styles.newsRow}>
               <View style={styles.newsCopy}>
-                <Text style={styles.newsTopic}>{item.topic.toUpperCase()}</Text>
+                <Text style={styles.newsTopic}>{item.category.toUpperCase()}</Text>
                 <Text style={styles.newsTitle} numberOfLines={2}>{item.title}</Text>
-                <Text style={styles.newsSource}>{item.source.split(" · ")[0]} · 3 min</Text>
+                <Text style={styles.newsSource}>{item.source.split(" · ")[0]} · {item.time}</Text>
               </View>
               <Image source={item.image} style={styles.newsImage} contentFit="cover" />
             </Pressable>
@@ -123,6 +126,7 @@ const styles = StyleSheet.create({
   discoverHeading: { paddingHorizontal: 20, marginTop: 27, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   discoverTitle: { color: "#fff", fontSize: 21, fontWeight: "700" },
   hero: { height: 286, marginHorizontal: 12, borderRadius: 18, overflow: "hidden", backgroundColor: colors.card },
+  heroArtwork: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
   heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,.28)" },
   heroCopy: { position: "absolute", left: 18, right: 18, bottom: 18 },
   heroEyebrow: { color: "rgba(255,255,255,.72)", fontSize: 9, fontWeight: "800", letterSpacing: 1.3 },
