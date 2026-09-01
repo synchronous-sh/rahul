@@ -218,7 +218,12 @@ export default function Learn() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View level progress and learning analytics"
+          onPress={() => router.push("/levels")}
+          style={({ pressed }) => [styles.hero, pressed && { opacity: 0.82 }]}
+        >
           <Image
             source={require("../../assets/characters/brain-level-1.png")}
             style={styles.brain}
@@ -230,7 +235,11 @@ export default function Learn() {
             {xp.toLocaleString()} / {levelTarget.toLocaleString()} XP
           </Text>
           <Progress value={levelProgress} style={styles.levelProgress} />
-        </View>
+          <View style={styles.heroHint}>
+            <Text style={styles.heroHintText}>View progress</Text>
+            <Ionicons name="chevron-forward" size={11} color={colors.secondary} />
+          </View>
+        </Pressable>
         <View style={styles.metrics}>
           <View style={styles.metric}>
             <Ionicons name="flame-outline" size={18} color="#fff" />
@@ -298,6 +307,8 @@ const styles = StyleSheet.create({
   },
   xp: { color: colors.secondary, fontSize: 10, marginTop: 5 },
   levelProgress: { width: 184, marginTop: 9 },
+  heroHint: { flexDirection: "row", alignItems: "center", gap: 2, marginTop: 10 },
+  heroHintText: { color: colors.secondary, fontSize: 9, fontWeight: "600" },
   metrics: {
     marginHorizontal: 20,
     height: 82,
@@ -344,5 +355,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardProgressFill: { height: 3, backgroundColor: "#fff" },
-  courseTitle: { color: "#fff", fontSize: 13, fontWeight: "700", marginTop: 8 },
+  courseTitle: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 8,
+  },
 });

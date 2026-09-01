@@ -195,24 +195,24 @@ export default function CourseOverview() {
               </Pressable>
             ))}
           </ScrollView>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push(`/path/${id}`)}
-            style={({ pressed }) => [styles.start, pressed && { opacity: 0.8 }]}
-          >
-            <Text style={styles.startText}>
-              {completed > 0 ? "Continue course" : "Start course"}
-            </Text>
-            <Ionicons name="arrow-forward" size={19} color="#000" />
-          </Pressable>
         </View>
       </ScrollView>
+      <View style={styles.stickyFooter}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(`/path/${id}`)}
+          style={({ pressed }) => [styles.start, pressed && { opacity: 0.8 }]}
+        >
+          <Text style={styles.startText}>Start</Text>
+          <Ionicons name="arrow-forward" size={19} color="#000" />
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#000" },
-  content: { paddingBottom: 36 },
+  content: { paddingBottom: 112 },
   hero: { height: 320, backgroundColor: colors.card },
   heroImage: { ...StyleSheet.absoluteFillObject },
   close: {
@@ -234,12 +234,8 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   circle: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    backgroundColor: "rgba(0,0,0,.6)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,.22)",
+    width: 38,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -335,12 +331,22 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: "#fff",
-    marginTop: 32,
-    marginBottom: 8,
     flexDirection: "row",
     gap: 9,
     alignItems: "center",
     justifyContent: "center",
   },
   startText: { color: "#000", fontSize: 16, fontWeight: "700" },
+  stickyFooter: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: "#000",
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
 });
