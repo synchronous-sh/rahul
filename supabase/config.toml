@@ -1,0 +1,14 @@
+project_id = "learning-brain"
+
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[auth]
+enabled = true
+site_url = "curious://auth"
+additional_redirect_urls = ["curious://**"]
+
+[storage]
+enabled = true

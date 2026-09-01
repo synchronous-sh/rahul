@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Curious",
+    "slug": "learning-brain",
+    "scheme": "curious",
+    "version": "1.0.0",
+    "icon": "./assets/brand/app-icon.png",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "icon": "./assets/brand/app-icon.png",
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rahulpalle.curious",
+      "usesAppleSignIn": true
+    },
+    "plugins": ["expo-router", "expo-apple-authentication"],
+    "experiments": { "typedRoutes": true }
+  }
+}
