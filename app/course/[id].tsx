@@ -15,7 +15,6 @@ import { CourseArtwork } from "@/components/CourseArtwork";
 import { PathId } from "@/data/courses";
 import { paths } from "@/data/content";
 import { goBack } from "@/lib/navigation";
-import { useAppState } from "@/state/AppState";
 
 const recommended: Record<PathId, PathId[]> = {
   ai: ["technology", "psychology", "science"],
@@ -33,18 +32,19 @@ const recommended: Record<PathId, PathId[]> = {
 };
 
 export default function CourseOverview() {
-  const params = useLocalSearchParams<{ id: string; title?: string }>();
+  const params = useLocalSearchParams<{ id: string; title?: string; description?: string }>();
   const id = (params.id in paths ? params.id : "ai") as PathId;
   const course = paths[id];
   const selectedTitle =
     typeof params.title === "string" && params.title.trim()
       ? params.title
       : course.title;
+  const selectedDescription =
+    typeof params.description === "string" && params.description.trim()
+      ? params.description.trim()
+      : course.description;
   const [saved, setSaved] = useState(false);
-  const { isCourseLessonComplete } = useAppState();
-  const completed = course.lessons.filter((_, index) =>
-    isCourseLessonComplete(id, index),
-  ).length;
+  const [downloaded, setDownloaded] = useState(false);
   const similarCourses = recommended[id];
   const recommendedCourses = (Object.keys(paths) as PathId[])
     .filter((path) => path !== id && !similarCourses.includes(path))
@@ -81,10 +81,21 @@ export default function CourseOverview() {
               />
             </Pressable>
             <Pressable
+              accessibilityLabel={downloaded ? "Remove course download" : "Download course"}
+              onPress={() => setDownloaded((value) => !value)}
+              style={styles.circle}
+            >
+              <Ionicons
+                name={downloaded ? "checkmark-circle" : "download-outline"}
+                size={22}
+                color="#fff"
+              />
+            </Pressable>
+            <Pressable
               accessibilityLabel="Share course"
               onPress={() =>
                 Share.share({
-                  message: `${selectedTitle}\n${course.description}`,
+                  message: `${selectedTitle}\n${selectedDescription}`,
                 })
               }
               style={styles.circle}
@@ -107,26 +118,10 @@ export default function CourseOverview() {
           </View>
           <Text style={styles.sectionTitle}>What you’ll learn</Text>
           <Text style={styles.description}>
-            {course.description} Build knowledge cumulatively through guided
+            {selectedDescription} Build knowledge cumulatively through guided
             explanations, worked examples, applications, and required mastery
             checks.
           </Text>
-          <View style={styles.outcomes}>
-            {[...new Set(course.lessons.map((lesson) => lesson.replace(": Applied", "")))]
-              .slice(0, 2)
-              .flatMap((topic) => [
-                `Understand the foundations of ${topic}`,
-                `Apply ${topic} to real examples and decisions`,
-              ])
-              .map((text) => (
-                <View key={text} style={styles.outcome}>
-                  <View style={styles.check}>
-                    <Ionicons name="checkmark" size={14} color="#000" />
-                  </View>
-                  <Text style={styles.outcomeText}>{text}</Text>
-                </View>
-              ))}
-          </View>
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Similar courses</Text>
             <Text style={styles.sectionLink}>More courses</Text>
@@ -204,7 +199,6 @@ export default function CourseOverview() {
           style={({ pressed }) => [styles.start, pressed && { opacity: 0.8 }]}
         >
           <Text style={styles.startText}>Start</Text>
-          <Ionicons name="arrow-forward" size={19} color="#000" />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -290,22 +284,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23,
     marginTop: 11,
-  },
-  outcomes: { marginTop: 16, gap: 13 },
-  outcome: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
-  check: {
-    width: 23,
-    height: 23,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  outcomeText: {
-    color: "rgba(255,255,255,.82)",
-    fontSize: 13,
-    lineHeight: 19,
-    flex: 1,
   },
   sectionRow: {
     flexDirection: "row",

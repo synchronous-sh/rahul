@@ -14,6 +14,10 @@ export default function Settings() {
   const sections: { title: string; rows: Row[] }[] = [
     { title: 'Personalization', rows: [
       { icon: 'options-outline', label: 'Personalization' },
+      { icon: 'color-wand-outline', label: 'Preferences' },
+      { icon: 'pricetags-outline', label: 'Interests', value: '8 selected' },
+      { icon: 'school-outline', label: 'Learning style', value: 'Visual' },
+      { icon: 'create-outline', label: 'Bio' },
       { icon: 'sparkles-outline', label: 'Memory', value: 'On' },
       { icon: 'extension-puzzle-outline', label: 'Plugins', value: '3 connected' },
     ] },
@@ -23,10 +27,12 @@ export default function Settings() {
       { icon: 'call-outline', label: 'Phone number', value: 'Not added' },
       { icon: 'at-outline', label: 'Username', value: '@rahul' },
       { icon: 'key-outline', label: 'Password' },
+      { icon: 'lock-closed-outline', label: 'Privacy', value: 'Public' },
       { icon: 'card-outline', label: 'Billing' },
     ] },
     { title: 'App', rows: [
       { icon: 'contrast-outline', label: 'Appearance', value: 'Dark' },
+      { icon: 'volume-high-outline', label: 'Voice', value: 'Marin · 1×', action: () => router.push('/settings/read-aloud') },
       { icon: 'settings-outline', label: 'General' },
       { icon: 'notifications-outline', label: 'Notifications' },
       { icon: 'shield-checkmark-outline', label: 'Privacy & safety' },
@@ -48,7 +54,7 @@ export default function Settings() {
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable style={styles.plan} onPress={() => show('Plan')}>
         <View style={styles.planIcon}><Ionicons name="diamond-outline" size={19} color={colors.white} /></View>
-        <View style={{ flex: 1 }}><Text style={styles.planTitle}>Curious Free</Text><Text style={styles.planText}>Manage your plan and usage</Text></View>
+        <View style={{ flex: 1 }}><Text style={styles.planTitle}>Free</Text><Text style={styles.planText}>Manage your plan and usage</Text></View>
         <Ionicons name="chevron-forward" size={18} color={colors.tertiary} />
       </Pressable>
       {sections.map(section => <View key={section.title} style={styles.section}>

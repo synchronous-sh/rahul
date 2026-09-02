@@ -1,24 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Modal, Pressable, SafeAreaView, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/theme';
-import { stories } from '@/data/content';
+import type { Story as StoryType } from '@/data/content';
 import { goBack } from '@/lib/navigation';
 import { CommentsPanel } from '@/components/CommentsPanel';
 import { MorePanel } from '@/components/MorePanel';
+import { ListenButton } from '@/components/ListenButton';
+import { getCachedNewsStories, getCachedNewsStory, type NewsStory } from '@/lib/news';
 
-const sections = [
-  ['What happened', 'The latest development adds a meaningful new signal to a story that is still unfolding. The details are clearer than the headline alone suggests.'],
-  ['Why it matters', 'The effects can reach households, businesses, and public policy at different speeds. Context makes it easier to separate the durable change from short-term noise.'],
-  ['Background', 'This story builds on decisions and trends that developed over several years. The current moment is best understood as part of that longer arc.'],
-  ['What to watch', 'Watch the next set of verified data, responses from affected groups, and whether early expectations hold up.'],
-];
+function storySections(story: NewsStory): [string, string][] {
+  const sentences = `${story.dek}. ${story.content ?? ''}`
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map((value) => value.trim())
+    .filter((value, index, all) => value.length > 30 && all.indexOf(value) === index);
+  const fallback = story.dek;
+  return [
+    ['What happened', sentences.slice(0, 2).join(' ') || fallback],
+    ['Why it matters', sentences.slice(2, 4).join(' ') || fallback],
+    ['Background', sentences.slice(4, 6).join(' ') || fallback],
+    ['What to watch', sentences.slice(6, 8).join(' ') || `Follow ${story.source} for verified updates to this developing story.`],
+  ];
+}
 
-function StoryRow({ story, onPress }: { story: (typeof stories)[number]; onPress: () => void }) {
+function StoryRow({ story, onPress }: { story: StoryType; onPress: () => void }) {
   return (
     <Pressable style={styles.relatedRow} onPress={onPress}>
       <Image source={story.image} style={styles.relatedThumb} contentFit="cover" />
@@ -33,22 +44,47 @@ function StoryRow({ story, onPress }: { story: (typeof stories)[number]; onPress
 
 export default function Story() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const story = stories.find((item) => item.id === id) ?? stories[0];
+  const [story, setStory] = useState<NewsStory | null>(null);
+  const [liveStories, setLiveStories] = useState<NewsStory[]>([]);
+  useEffect(() => {
+    setStory(null);
+    Promise.all([getCachedNewsStory(id), getCachedNewsStories()]).then(([item, cached]) => {
+      setLiveStories(cached);
+      if (item?.link) setStory(item);
+      else Alert.alert('Story unavailable', 'Only verified live articles with publisher links are shown.', [{ text: 'Go back', onPress: () => goBack() }]);
+    });
+  }, [id]);
   const insets = useSafeAreaInsets();
   const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
-  const [listening, setListening] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [articleOpen, setArticleOpen] = useState(false);
+  if (!story) return <SafeAreaView style={styles.screen}><View style={styles.loading}><ActivityIndicator color="#fff" /></View></SafeAreaView>;
   const learningPath = story.category === 'Markets' ? 'finance' : story.category === 'Technology' ? 'technology' : story.category === 'Science' ? 'science' : story.category === 'Business' ? 'business' : 'history';
   const tap = (action: () => void) => { Haptics.selectionAsync().catch(() => undefined); action(); };
   const placeholder = (label: string) => Alert.alert(label, 'No action is required right now.');
 
-  const others = stories.filter((item) => item.id !== story.id);
+  const others = liveStories.filter((item) => item.id !== story.id && item.link);
   const similar = others.filter((item) => item.category === story.category).slice(0, 3);
   const recommended = others.filter((item) => item.category !== story.category).slice(0, 3);
-  const openStory = (storyId: string) => { setArticleOpen(false); router.push(`/story/${storyId}`); };
+  const sections = storySections(story);
+  const articleText = `${story.title}. ${story.dek}. ${sections.map(([heading, body]) => `${heading}. ${body}`).join(' ')}`;
+  const openFullArticle = async () => {
+    if (!story.link) {
+      Alert.alert('Original article unavailable', 'This archived preview does not include a source URL. Open a live story from Today’s news to read its original article.');
+      return;
+    }
+    try {
+      await WebBrowser.openBrowserAsync(story.link, {
+        dismissButtonStyle: 'close',
+        enableBarCollapsing: true,
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+        controlsColor: '#000000',
+      });
+    } catch {
+      Alert.alert('Could not open article', 'Please check your connection and try again.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -57,6 +93,7 @@ export default function Story() {
           <Ionicons name="chevron-back" size={27} color="#fff" />
         </Pressable>
         <View style={styles.navActions}>
+          <ListenButton text={articleText} iconOnly />
           <Pressable accessibilityLabel={liked ? 'Unlike' : 'Like'} hitSlop={8} onPress={() => tap(() => setLiked((v) => !v))}>
             <Ionicons name={liked ? 'heart' : 'heart-outline'} size={21} color={liked ? '#FF453A' : '#fff'} />
           </Pressable>
@@ -71,9 +108,6 @@ export default function Story() {
           </Pressable>
           <Pressable accessibilityLabel="Share" hitSlop={8} onPress={() => tap(() => Share.share({ message: `${story.title}\n${story.dek}` }))}>
             <Ionicons name="paper-plane-outline" size={20} color="#fff" />
-          </Pressable>
-          <Pressable accessibilityLabel={listening ? 'Stop listening' : 'Listen to this story'} hitSlop={8} onPress={() => tap(() => setListening((v) => !v))}>
-            <Ionicons name={listening ? 'volume-high' : 'volume-high-outline'} size={20} color="#fff" />
           </Pressable>
           <Pressable accessibilityLabel="More options" hitSlop={8} onPress={() => tap(() => setMoreOpen(true))} style={styles.more}>
             <View style={styles.moreLineTop} />
@@ -95,7 +129,7 @@ export default function Story() {
           </View>
         ))}
 
-        <Pressable style={styles.readFull} onPress={() => tap(() => setArticleOpen(true))}>
+        <Pressable style={styles.readFull} onPress={() => tap(openFullArticle)}>
           <View>
             <Text style={styles.learnLabel}>Read full article</Text>
             <Text style={styles.learnTitle}>{story.source}</Text>
@@ -127,45 +161,21 @@ export default function Story() {
         title="About this story"
         summary={story.dek}
         actions={[
-          { label: 'Speed', icon: 'speedometer-outline', onPress: () => placeholder('Speed') },
-          { label: 'Voice', icon: 'mic-outline', onPress: () => placeholder('Voice') },
+          { label: 'Speed', icon: 'speedometer-outline', onPress: () => { setMoreOpen(false); router.push('/settings/read-aloud'); } },
+          { label: 'Voice', icon: 'mic-outline', onPress: () => { setMoreOpen(false); router.push('/settings/read-aloud'); } },
           { label: 'Interested', icon: 'thumbs-up-outline', onPress: () => placeholder('Interested') },
           { label: 'Not interested', icon: 'thumbs-down-outline', onPress: () => placeholder('Not interested') },
-          { label: 'View full article', icon: 'open-outline', onPress: () => tap(() => setArticleOpen(true)) },
+          { label: 'View full article', icon: 'open-outline', onPress: () => tap(openFullArticle) },
         ]}
       />
 
-      <Modal visible={articleOpen} animationType="slide" onRequestClose={() => setArticleOpen(false)}>
-        <SafeAreaView style={styles.screen}>
-          <View style={styles.nav}>
-            <Pressable accessibilityLabel="Close" hitSlop={12} onPress={() => setArticleOpen(false)}>
-              <Ionicons name="close" size={26} color="#fff" />
-            </Pressable>
-            <Text style={styles.articleBrand}>FULL ARTICLE</Text>
-            <View style={{ width: 26 }} />
-          </View>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.category}>{story.category}</Text>
-            <Text style={styles.articleTitle}>{story.title}</Text>
-            <Text style={styles.meta}>{story.source}  ·  {story.time}</Text>
-            <Image source={story.image} style={styles.image} contentFit="cover" />
-            <Text style={styles.articleLede}>{story.dek}</Text>
-            {sections.map(([heading, body]) => (
-              <View key={heading} style={styles.block}>
-                <Text style={styles.heading}>{heading}</Text>
-                <Text style={styles.articleBody}>{body}</Text>
-              </View>
-            ))}
-            {similar.slice(0, 2).map((item) => <StoryRow key={item.id} story={item} onPress={() => openStory(item.id)} />)}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   nav: { height: 52, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   navActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   more: { gap: 4, alignItems: 'center' },

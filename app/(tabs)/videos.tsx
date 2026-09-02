@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  ActivityIndicator,
   Dimensions,
   FlatList,
   ListRenderItem,
@@ -17,27 +18,25 @@ import {
 } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
 import { CommentsPanel } from "@/components/CommentsPanel";
-import { FeedMedia } from "@/components/FeedMedia";
+import { NewsShortMedia } from "@/components/NewsShortMedia";
 import { MorePanel } from "@/components/MorePanel";
 import { colors } from "@/constants/theme";
-import { FeedItem } from "@/data/content";
-import { videoCovers } from "@/data/videoCovers";
-import { useAppState, useRankedFeed } from "@/state/AppState";
+import { fetchNews, getCachedNewsStory } from "@/lib/news";
+import { buildNewsShort, type NewsShort } from "@/lib/newsShorts";
+import { useAppState } from "@/state/AppState";
 const height = Dimensions.get("window").height;
 const categories = [
-  "Explore",
-  "AI",
-  "Business",
-  "Finance",
-  "Science",
+  "For You",
+  "U.S.",
+  "World",
   "History",
-  "Space",
-  "Psychology",
-  "Cooking",
+  "Business",
   "Technology",
+  "Science",
+  "Entertainment",
+  "Lifestyle",
+  "Food",
   "Sports",
-  "Economics",
-  "Design",
 ];
 
 function FeedAction({
@@ -78,26 +77,38 @@ function FeedAction({
 }
 
 export default function Videos() {
-  const ranked = useRankedFeed();
   const { id: selectedId } = useLocalSearchParams<{ id?: string }>();
   const { saved, liked, toggleSave, toggleLike } = useAppState();
+  const [newsShorts, setNewsShorts] = useState<NewsShort[]>([]);
+  const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(0);
-  const [category, setCategory] = useState("Explore");
-  const [commentsFor, setCommentsFor] = useState<FeedItem | null>(null);
-  const [moreFor, setMoreFor] = useState<FeedItem | null>(null);
+  const [category, setCategory] = useState("For You");
+  const [commentsFor, setCommentsFor] = useState<NewsShort | null>(null);
+  const [moreFor, setMoreFor] = useState<NewsShort | null>(null);
   const placeholder = (label: string) => Alert.alert(label, "No action is required right now.");
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setNewsShorts([]);
+    Promise.all([fetchNews(category), selectedId && category === "For You" ? getCachedNewsStory(selectedId) : Promise.resolve(null)])
+      .then(([stories, selected]) => [selected, ...stories]
+        .filter((story): story is NonNullable<typeof story> => Boolean(story?.link))
+        .filter((story, index, all) => all.findIndex(item => item.id === story.id) === index))
+      .then(stories => Promise.all(stories.map(buildNewsShort)))
+      .then(items => { if (mounted) setNewsShorts(items); })
+      .catch(error => { if (mounted) Alert.alert('Videos unavailable', error instanceof Error ? error.message : 'Please try again.'); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, [category, selectedId]);
   const prioritized = useMemo(() => {
-    if (!selectedId) return ranked;
-    const selected = ranked.find((item) => item.id === selectedId);
-    return selected ? [selected, ...ranked.filter((item) => item.id !== selectedId)] : ranked;
-  }, [ranked, selectedId]);
-  const items =
-    category === "Explore"
-      ? prioritized
-      : prioritized.filter((item) => item.topic === category);
+    if (!selectedId) return newsShorts;
+    const selected = newsShorts.find((item) => item.id === selectedId);
+    return selected ? [selected, ...newsShorts.filter((item) => item.id !== selectedId)] : newsShorts;
+  }, [newsShorts, selectedId]);
+  const items = prioritized;
   useEffect(() => {
     if (selectedId) {
-      setCategory("Explore");
+      setCategory("For You");
       setActive(0);
     }
   }, [selectedId]);
@@ -107,34 +118,20 @@ export default function Videos() {
       if (viewableItems[0]?.index != null) setActive(viewableItems[0].index);
     },
   );
-  const renderItem: ListRenderItem<FeedItem> = useCallback(
+  const renderItem: ListRenderItem<NewsShort> = useCallback(
     ({ item, index }) => {
       const publisher = item.source.split(" · ")[0];
       return (
         <View style={styles.page}>
-          <FeedMedia
-            image={videoCovers[item.id] ?? item.image}
-            active={index === active}
-          />
+          <NewsShortMedia item={item} active={index === active} />
           <View style={styles.shade} />
-          <View style={styles.topicRow}>
-            <Text style={styles.topic}>{item.topic}</Text>
-            <View style={styles.sound}>
-              <Ionicons
-                name={index === active ? "volume-medium" : "volume-mute"}
-                size={16}
-                color="#fff"
-              />
-            </View>
-          </View>
           <View style={styles.bottom}>
             <View style={styles.copy}>
-              <Text style={styles.title} numberOfLines={2}>
-                {item.title}
+              <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.86}>
+                {item.shortTitle}
               </Text>
-              <Text style={styles.description} numberOfLines={2}>
-                {item.description}
-              </Text>
+              <Text style={styles.description} numberOfLines={1}>{item.dek}  <Text style={styles.moreText}>more</Text></Text>
+              <Text style={styles.attribution} numberOfLines={1}>{publisher}</Text>
             </View>
             <View style={styles.actions}>
               <FeedAction
@@ -157,15 +154,15 @@ export default function Videos() {
                 onPress={() => toggleSave(item.id)}
               />
               <FeedAction
-                label="Learn"
+                label="Read news summary"
                 icon="book-outline"
-                onPress={() => router.push(`/path/${item.path}`)}
+                onPress={() => router.push(`/story/${item.id}`)}
               />
               <FeedAction
                 label="Share"
                 icon="paper-plane-outline"
                 onPress={() =>
-                  Share.share({ message: `${item.title}\n${item.description}` })
+                  Share.share({ message: `${item.title}\n${item.dek}\n${item.link}` })
                 }
               />
               <Pressable
@@ -186,7 +183,7 @@ export default function Videos() {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Source: ${publisher}`}
+                accessibilityLabel={`Open ${publisher} news summary`}
                 onPress={() => router.push(`/story/${item.id}`)}
                 style={styles.sourceBadge}
               >
@@ -202,6 +199,8 @@ export default function Videos() {
   );
   return (
     <View style={styles.screen}>
+      {loading && <View style={styles.loader}><ActivityIndicator color="#fff" /><Text style={styles.loaderText}>Building today’s news videos…</Text></View>}
+      {!loading && items.length === 0 && <View style={styles.loader}><Ionicons name="newspaper-outline" size={28} color={colors.secondary} /><Text style={styles.loaderText}>No verified news videos are available in this category.</Text></View>}
       <FlatList
         data={items}
         renderItem={renderItem}
@@ -255,10 +254,10 @@ export default function Videos() {
         onClose={() => setMoreFor(null)}
         edge="bottom"
         title="About this video"
-        summary={moreFor?.description ?? ""}
+        summary={moreFor?.dek ?? ""}
         actions={[
-          { label: "Voice", icon: "mic-outline", onPress: () => placeholder("Voice") },
-          { label: "Speed", icon: "speedometer-outline", onPress: () => placeholder("Speed") },
+          { label: "Voice", icon: "mic-outline", onPress: () => { setMoreFor(null); router.push('/settings/read-aloud'); } },
+          { label: "Speed", icon: "speedometer-outline", onPress: () => { setMoreFor(null); router.push('/settings/read-aloud'); } },
           { label: "Autoscroll", icon: "play-skip-forward-outline", onPress: () => placeholder("Autoscroll") },
           { label: "Interested", icon: "thumbs-up-outline", onPress: () => placeholder("Interested") },
           { label: "Not interested", icon: "thumbs-down-outline", onPress: () => placeholder("Not interested") },
@@ -301,30 +300,14 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: "#fff",
   },
-  topicRow: {
-    position: "absolute",
-    top: 156,
-    left: 20,
-    right: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  topic: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 1.7 },
-  sound: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,.28)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  loader: { ...StyleSheet.absoluteFillObject, zIndex: 4, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 36 },
+  loaderText: { color: colors.secondary, fontSize: 13, textAlign: 'center' },
   bottom: {
     position: "absolute",
     left: 18,
     right: 9,
     bottom: 88,
-    height: 132,
+    height: 116,
     flexDirection: "row",
     alignItems: "flex-end",
   },
@@ -353,6 +336,7 @@ const styles = StyleSheet.create({
     textShadowColor: "#000",
     textShadowRadius: 4,
   },
+  moreText: { color: "rgba(255,255,255,.64)", fontWeight: "600" },
   actions: {
     width: 48,
     alignItems: "center",

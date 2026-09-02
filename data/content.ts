@@ -255,12 +255,15 @@ export const feed: FeedItem[] = [
 
 export type Story = {
   id: string;
-  category: "US" | "World" | "Business" | "Markets" | "Technology" | "Science";
+  category: "For You" | "U.S." | "World" | "History" | "Business" | "Markets" | "Technology" | "Science" | "Health" | "Politics" | "Culture" | "Music" | "Lifestyle" | "Entertainment" | "Food" | "Sports";
   title: string;
   dek: string;
   source: string;
   time: string;
   image: string;
+  link?: string;
+  content?: string;
+  publishedAt?: string;
 };
 export const stories: Story[] = [
   [

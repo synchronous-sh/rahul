@@ -9,6 +9,39 @@ extra_search_path = ["public", "extensions"]
 enabled = true
 site_url = "curious://auth"
 additional_redirect_urls = ["curious://**"]
+enable_anonymous_sign_ins = true
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+max_frequency = "1m"
+otp_length = 8
 
 [storage]
 enabled = true
+
+[functions.create-custom-course]
+verify_jwt = true
+
+[functions.ask-ai]
+verify_jwt = true
+
+[functions.semantic-search]
+verify_jwt = true
+
+[functions.text-to-speech]
+verify_jwt = true
+
+[functions.transcribe-audio]
+verify_jwt = true
+
+[functions.news-feed]
+verify_jwt = true
+
+[functions.create-news-short]
+verify_jwt = true

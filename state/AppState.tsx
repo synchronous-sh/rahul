@@ -3,9 +3,10 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { feed } from '@/data/content';
 import { recommendationScore } from '@/lib/recommendation';
 
+export type OnboardingProfile = { interests: string[]; subtopics: Record<string, string[]>; level: 'Beginner' | 'Intermediate' | 'Advanced'; goals: string[]; learningStyles: string[] };
 type State = {
   onboarded: boolean | null; interests: string[]; saved: string[]; liked: string[]; xp: number; streak: number; completedLessons: number; completedLessonIds: string[];
-  finishOnboarding: (topics: string[]) => void; toggleSave: (id: string) => void; toggleLike: (id: string) => void; completeCourseLesson: (path: string, lessonIndex: number) => void; isCourseLessonComplete: (path: string, lessonIndex: number) => boolean; resetDemo: () => void;
+  finishOnboarding: (profile: OnboardingProfile | string[]) => void; toggleSave: (id: string) => void; toggleLike: (id: string) => void; completeCourseLesson: (path: string, lessonIndex: number) => void; isCourseLessonComplete: (path: string, lessonIndex: number) => boolean; resetDemo: () => void;
 };
 const Context = createContext<State | null>(null); const KEY = 'curious-demo-state-v1';
 export const lessonKey = (path: string, lessonIndex: number) => `${path}:${lessonIndex}`;
@@ -15,7 +16,7 @@ export function AppStateProvider({ children }: React.PropsWithChildren) {
   useEffect(() => { AsyncStorage.getItem(KEY).then(raw => { if (raw) { const s = JSON.parse(raw); setOnboarded(true); setInterests(s.interests ?? []); setSaved(s.saved ?? []); setLiked(s.liked ?? []); setXp(s.xp ?? 1480); setStreak(s.streak ?? 14); setCompletedLessons(s.completedLessons ?? 12); setCompletedLessonIds(s.completedLessonIds ?? []); } else setOnboarded(false); }); }, []);
   const snapshot = () => ({ interests, saved, liked, xp, streak, completedLessons, completedLessonIds });
   const persist = (patch: object) => AsyncStorage.getItem(KEY).then(raw => AsyncStorage.setItem(KEY, JSON.stringify({ ...snapshot(), ...(raw ? JSON.parse(raw) : {}), ...patch })));
-  const finishOnboarding = (topics: string[]) => { setInterests(topics); setOnboarded(true); persist({ interests: topics }); };
+  const finishOnboarding = (profile: OnboardingProfile | string[]) => { const topics = Array.isArray(profile) ? profile : profile.interests; setInterests(topics); setOnboarded(true); persist({ interests: topics, ...(!Array.isArray(profile) ? { onboardingProfile: profile } : {}) }); };
   const toggleSave = (id: string) => setSaved(value => { const next = value.includes(id) ? value.filter(item => item !== id) : [...value, id]; persist({ saved: next }); return next; });
   const toggleLike = (id: string) => setLiked(value => { const next = value.includes(id) ? value.filter(item => item !== id) : [...value, id]; persist({ liked: next }); return next; });
   const completeCourseLesson = (path: string, lessonIndex: number) => { const key = lessonKey(path, lessonIndex); if (completedLessonIds.includes(key)) return; const nextIds = [...completedLessonIds, key]; const nextXp = xp + 25; const nextCount = completedLessons + 1; setCompletedLessonIds(nextIds); setXp(nextXp); setCompletedLessons(nextCount); persist({ completedLessonIds: nextIds, xp: nextXp, completedLessons: nextCount }); };

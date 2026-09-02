@@ -10,16 +10,21 @@ import {
   Text,
   TextInput,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { colors } from "@/constants/theme";
 import { feed } from "@/data/content";
+import { semanticSearch } from "@/lib/ai";
+import { VoiceInputButton } from "@/components/VoiceInputButton";
 
 const topics = ["All", ...Array.from(new Set(feed.map((item) => item.topic)))];
 export default function Search() {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("All");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const results = useMemo(
+  const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
+  const [searchingAI, setSearchingAI] = useState(false);
+  const lexicalResults = useMemo(
     () =>
       feed.filter(
         (item) =>
@@ -30,6 +35,8 @@ export default function Search() {
       ),
     [query, topic],
   );
+  const results = semanticIds ? semanticIds.map(id => feed.find(item => item.id === id)).filter((item): item is (typeof feed)[number] => Boolean(item)).filter(item => topic === 'All' || item.topic === topic) : lexicalResults;
+  const searchByMeaning = async () => { const clean = query.trim(); if (clean.length < 2 || searchingAI) return; setSearchingAI(true); try { const candidates = feed.map(item => ({ id: item.id, title: item.title, text: `${item.topic}. ${item.description}. ${item.source}` })); const response = await semanticSearch(clean, candidates); setSemanticIds(response.results.map(item => item.id)); } catch { setSemanticIds(null); } finally { setSearchingAI(false); } };
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
@@ -42,13 +49,14 @@ export default function Search() {
             <TextInput
               value={query}
               onChangeText={setQuery}
+              onSubmitEditing={searchByMeaning}
               returnKeyType="search"
               style={styles.input}
               placeholder="Search ideas and topics"
               placeholderTextColor={colors.secondary}
             />
             {query.length > 0 && (
-              <Pressable onPress={() => setQuery("")} hitSlop={8}>
+              <Pressable onPress={() => { setQuery(""); setSemanticIds(null); }} hitSlop={8}>
                 <Ionicons
                   name="close-circle"
                   size={18}
@@ -56,6 +64,7 @@ export default function Search() {
                 />
               </Pressable>
             )}
+            <VoiceInputButton onResult={(text) => { setQuery(text); setSemanticIds(null); }} />
           </View>
           <Pressable
             accessibilityRole="button"
@@ -70,6 +79,7 @@ export default function Search() {
             />
           </Pressable>
         </View>
+        {query.trim().length > 1 && <Pressable onPress={searchByMeaning} style={styles.aiSearch}>{searchingAI ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="sparkles-outline" size={15} color="#fff" />}<Text style={styles.aiSearchText}>{semanticIds ? 'Semantic results' : 'Search by meaning'}</Text></Pressable>}
         {filtersOpen && (
           <ScrollView
             horizontal
@@ -108,7 +118,7 @@ export default function Search() {
                   styles.item,
                   pressed && { opacity: 0.72 },
                 ]}
-                  onPress={() => router.push(`/course/${item.path}`)}
+                  onPress={() => router.push(item.video ? { pathname: '/(tabs)/videos', params: { id: item.id } } : `/story/${item.id}`)}
               >
                 <Image
                   source={item.image}
@@ -173,6 +183,8 @@ const styles = StyleSheet.create({
   filterActive: { backgroundColor: colors.white },
   input: { flex: 1, color: colors.white, fontSize: 14 },
   filters: { gap: 8, paddingTop: 14 },
+  aiSearch: { alignSelf: 'flex-start', height: 34, flexDirection: 'row', gap: 7, alignItems: 'center', marginTop: 12, paddingHorizontal: 12, borderRadius: 17, backgroundColor: '#171717', borderWidth: 1, borderColor: '#303030' },
+  aiSearchText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   chip: {
     paddingHorizontal: 13,
     height: 34,

@@ -52,21 +52,18 @@ export default function Profile() {
 
   return <SafeAreaView style={styles.screen}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.topRow}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Settings" hitSlop={10} onPress={() => router.push('/settings')} style={styles.settingsButton}>
-          <Ionicons name="settings-outline" size={22} color={colors.white} />
-        </Pressable>
-      </View>
-
       <View style={styles.profile}>
         <View style={styles.avatar}><Text style={styles.avatarText}>R</Text></View>
         <View style={styles.identity}>
           <Text style={styles.name}>Rahul</Text>
           <Text style={styles.handle}>@rahul</Text>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Settings" hitSlop={10} onPress={() => router.push('/settings')} style={styles.settingsButton}>
+          <Ionicons name="settings-outline" size={22} color={colors.white} />
+        </Pressable>
       </View>
 
-      <Text style={styles.bio}>Learning something new every day. Building Curious 🧠</Text>
+      <Text style={styles.bio}>Learning something new every day. Building Synchronous 🧠</Text>
 
       <View style={styles.stats}>
         {stats.map((item) => <View key={item.label} style={styles.stat}>
@@ -110,7 +107,6 @@ export default function Profile() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.black },
   content: { paddingHorizontal: layout.page, paddingTop: 8, paddingBottom: 105 },
-  topRow: { flexDirection: 'row', justifyContent: 'flex-end' },
   settingsButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   profile: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9 },
   avatar: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },

@@ -1,13 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { CourseArtwork } from "@/components/CourseArtwork";
 import { Progress } from "@/components/ui";
 import { colors } from "@/constants/theme";
-import { feed, stories } from "@/data/content";
-import { videoCovers } from "@/data/videoCovers";
 import { useAppState } from "@/state/AppState";
+import { fetchNews, type NewsStory } from "@/lib/news";
 
 const continueCourses = [
   { id: "finance" as const, title: "Finance", detail: "Continue with Banks", progress: 58 },
@@ -22,12 +22,12 @@ const recommendedCourses = [
   { id: "science" as const, title: "Science" },
 ];
 
-const recommendedVideos = [feed[0], feed[2], feed[6], feed[8]];
-
 export default function Home() {
   const { saved, toggleSave } = useAppState();
   const discoverId = "ai-foundations";
   const heroSaved = saved.includes(discoverId);
+  const [homeNews, setHomeNews] = useState<NewsStory[]>([]);
+  useEffect(() => { fetchNews('For You').then(items => setHomeNews(items.slice(0, 12))).catch(() => setHomeNews([])); }, []);
   const openDiscoverCourse = () => router.push({ pathname: "/course/[id]", params: { id: "ai", title: "AI Foundations" } });
 
   return (
@@ -85,12 +85,12 @@ export default function Home() {
 
         <SectionHeader title="Videos for you" action="Watch all" onPress={() => router.push("/(tabs)/videos")} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.videoRail}>
-          {recommendedVideos.map((item) => (
+          {homeNews.slice(0, 4).map((item) => (
             <Pressable key={item.id} onPress={() => router.push({ pathname: "/(tabs)/videos", params: { id: item.id } })} style={styles.videoCard}>
-              <Image source={videoCovers[item.id] ?? item.image} style={styles.videoImage} contentFit="cover" />
+              <Image source={item.image} style={styles.videoImage} contentFit="cover" />
               <View style={styles.videoShade} />
               <View style={styles.videoPlay}><Ionicons name="play" size={13} color="#000" /></View>
-              <Text style={styles.videoDuration}>{item.video ? "3:12" : "2:48"}</Text>
+              <Text style={styles.videoDuration}>0:30</Text>
               <Text style={styles.videoTitle} numberOfLines={2}>{item.title}</Text>
             </Pressable>
           ))}
@@ -98,7 +98,7 @@ export default function Home() {
 
         <SectionHeader title="Today’s news" action="More news" onPress={() => router.push("/(tabs)/news")} />
         <View style={styles.newsList}>
-          {stories.slice(0, 3).map((item) => (
+          {homeNews.slice(4, 7).map((item) => (
             <Pressable key={item.id} onPress={() => router.push(`/story/${item.id}`)} style={styles.newsRow}>
               <View style={styles.newsCopy}>
                 <Text style={styles.newsTopic}>{item.category.toUpperCase()}</Text>

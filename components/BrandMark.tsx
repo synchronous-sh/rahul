@@ -5,8 +5,8 @@ export function BrandMark({ size = 34 }: { size?: number }) {
   return (
     <View style={[styles.frame, { width: size, height: size, borderRadius: size * 0.22 }]}> 
       <Image
-        source={require("../assets/brand/curious-book-mark-transparent-v4.png")}
-        style={{ width: size, height: size }}
+        source={require("../assets/brand/synchronous-book-logo-exact-2048.png")}
+        style={{ width: size, height: size, tintColor: "#fff" }}
         contentFit="contain"
       />
     </View>

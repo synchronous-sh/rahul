@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Curious",
+    "name": "Synchronous",
     "slug": "learning-brain",
     "scheme": "curious",
     "version": "1.0.0",
@@ -14,7 +14,19 @@
       "bundleIdentifier": "com.rahulpalle.curious",
       "usesAppleSignIn": true
     },
-    "plugins": ["expo-router", "expo-apple-authentication"],
-    "experiments": { "typedRoutes": true }
+    "plugins": [
+      "expo-router",
+      "expo-apple-authentication",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Synchronous to transcribe your voice searches."
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

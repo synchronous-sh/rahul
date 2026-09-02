@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { BrandMark } from "@/components/BrandMark";
 import { colors } from "@/constants/theme";
 
-type Panel = "search" | "notifications" | "messages" | "menu";
+type Panel = "search" | "inbox";
 
 export function AppHeader({ overlay = false }: { overlay?: boolean }) {
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -18,77 +18,79 @@ export function AppHeader({ overlay = false }: { overlay?: boolean }) {
 
   return (
     <View style={[styles.header, overlay && styles.overlay]} pointerEvents="box-none">
-      <View style={styles.brand}><BrandMark size={34} /></View>
-      <View style={styles.actions}>
-        <HeaderButton label="Search" icon="search-outline" active={panel === "search"} onPress={() => toggle("search")} />
-        <HeaderButton label="Notifications" icon="notifications-outline" active={panel === "notifications"} onPress={() => toggle("notifications")} />
-        <HeaderButton label="Messages" icon="paper-plane-outline" active={panel === "messages"} onPress={() => toggle("messages")} />
-        <HeaderButton label="Menu" icon="reorder-two-outline" active={panel === "menu"} onPress={() => toggle("menu")} large />
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go to Home"
+        hitSlop={10}
+        onPress={() => {
+          Haptics.selectionAsync().catch(() => undefined);
+          setPanel(null);
+          router.replace("/(tabs)/explore");
+        }}
+        style={styles.brand}
+      >
+        <BrandMark size={34} />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Search" onPress={() => toggle("search")} style={styles.headerSearch}><Ionicons name="search-outline" size={17} color="rgba(255,255,255,.5)" /><Text style={styles.headerSearchText}>Search</Text></Pressable>
+      <InboxButton active={panel === "inbox"} onPress={() => toggle("inbox")} />
       {panel && <HeaderOverlay panel={panel} setPanel={setPanel} />}
     </View>
   );
 }
 
 function HeaderOverlay({ panel, setPanel }: { panel: Panel; setPanel: (panel: Panel | null) => void }) {
+  const [query, setQuery] = useState("");
   return (
     <Modal visible animationType="fade" presentationStyle="overFullScreen" statusBarTranslucent onRequestClose={() => setPanel(null)}>
       <View style={styles.modalScreen}>
         <View style={styles.modalNav}>
-          <View style={styles.brand}><BrandMark size={34} /></View>
-          <View style={styles.actions}>
-            <HeaderButton label="Search" icon="search-outline" active={panel === "search"} onPress={() => setPanel(panel === "search" ? null : "search")} />
-            <HeaderButton label="Notifications" icon="notifications-outline" active={panel === "notifications"} onPress={() => setPanel(panel === "notifications" ? null : "notifications")} />
-            <HeaderButton label="Messages" icon="paper-plane-outline" active={panel === "messages"} onPress={() => setPanel(panel === "messages" ? null : "messages")} />
-            <HeaderButton label="Menu" icon="reorder-two-outline" active={panel === "menu"} onPress={() => setPanel(panel === "menu" ? null : "menu")} large />
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={10} onPress={() => setPanel(null)} style={styles.modalBack}><Ionicons name="chevron-back" size={25} color="#fff" /></Pressable>
+          <View style={styles.modalSearch}>
+            <Ionicons name="search-outline" size={17} color="rgba(255,255,255,.5)" />
+            <TextInput autoFocus={panel === 'search'} value={query} onChangeText={setQuery} onFocus={() => setPanel('search')} placeholder="Search" placeholderTextColor="rgba(255,255,255,.42)" style={styles.modalSearchInput} />
+            {query.length > 0 && <Pressable accessibilityLabel="Clear search" onPress={() => setQuery('')}><Ionicons name="close-circle" size={17} color={colors.secondary} /></Pressable>}
           </View>
+          {panel === 'inbox' && <Pressable accessibilityRole="button" accessibilityLabel="New message" hitSlop={10} onPress={() => Alert.alert('New message', 'Choose a person to start a conversation.')} style={styles.compose}><Ionicons name="create-outline" size={22} color="rgba(255,255,255,.7)" /></Pressable>}
         </View>
-        <HeaderPanel panel={panel} onClose={() => setPanel(null)} />
+        <HeaderPanel panel={panel} query={query} onClose={() => setPanel(null)} />
       </View>
     </Modal>
   );
 }
 
-function HeaderButton({ label, icon, active, onPress, large = false }: {
-  label: string;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  active: boolean;
-  onPress: () => void;
-  large?: boolean;
-}) {
+function InboxButton({ active, onPress }: { active: boolean; onPress: () => void }) {
+  const unreadCount = 3;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={`Inbox, ${unreadCount} unread`}
       accessibilityState={{ expanded: active }}
       hitSlop={8}
       onPress={onPress}
       style={[styles.button, active && styles.buttonActive]}
     >
-      <Ionicons name={active && label !== "Menu" ? ("close-outline" as const) : icon} size={large ? 27 : 23} color="#fff" />
+      <Ionicons name={active ? "close-outline" : "mail-outline"} size={24} color="rgba(255,255,255,.64)" />
+      {!active && unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount}</Text></View>}
     </Pressable>
   );
 }
 
-function HeaderPanel({ panel, onClose }: { panel: Panel; onClose: () => void }) {
+function HeaderPanel({ panel, query, onClose }: { panel: Panel; query: string; onClose: () => void }) {
+  const [inboxTab, setInboxTab] = useState<'notifications' | 'messages'>('notifications');
   return (
     <View style={styles.panel}>
-      <View style={styles.panelTop}>
-        <Text style={styles.panelTitle}>{panel === "menu" ? "Menu" : panel[0].toUpperCase() + panel.slice(1)}</Text>
-        <Pressable accessibilityLabel="Close" hitSlop={10} onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={23} color="#fff" />
-        </Pressable>
-      </View>
-      {panel === "search" && <SearchPanel onClose={onClose} />}
-      {panel === "notifications" && <NotificationsPanel />}
-      {panel === "messages" && <MessagesPanel />}
-      {panel === "menu" && <MenuPanel onClose={onClose} />}
+      {panel === "search" && <SearchPanel query={query} onClose={onClose} />}
+      {panel === "inbox" && <>
+        <View style={styles.inboxTabs}>
+          {(['notifications', 'messages'] as const).map(tab => <Pressable key={tab} onPress={() => setInboxTab(tab)} style={styles.inboxTab}><Text style={[styles.inboxTabText, inboxTab === tab && styles.inboxTabTextActive]}>{tab === 'notifications' ? 'Notifications' : 'Messages'}</Text>{inboxTab === tab && <View style={styles.inboxTabLine} />}</Pressable>)}
+        </View>
+        {inboxTab === 'notifications' ? <NotificationsPanel /> : <MessagesPanel />}
+      </>}
     </View>
   );
 }
 
-function SearchPanel({ onClose }: { onClose: () => void }) {
-  const [query, setQuery] = useState("");
+function SearchPanel({ query, onClose }: { query: string; onClose: () => void }) {
   const suggestions = [
     { label: "Artificial intelligence", route: "/course/ai" },
     { label: "Finance", route: "/course/finance" },
@@ -98,11 +100,6 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
   ];
   return (
     <View>
-      <View style={styles.searchBox}>
-        <Ionicons name="search" size={19} color={colors.secondary} />
-        <TextInput autoFocus value={query} onChangeText={setQuery} placeholder="Search courses, videos, and news" placeholderTextColor={colors.tertiary} style={styles.searchInput} />
-        {query.length > 0 && <Pressable onPress={() => setQuery("")}><Ionicons name="close-circle" size={18} color={colors.secondary} /></Pressable>}
-      </View>
       <Text style={styles.eyebrow}>{query ? "RESULTS" : "SUGGESTED"}</Text>
       {suggestions.filter((item) => item.label.toLowerCase().includes(query.toLowerCase())).map((item) => (
         <Pressable key={item.label} onPress={() => { onClose(); router.push(item.route as never); }} style={styles.row}>
@@ -139,17 +136,6 @@ function MessagesPanel() {
   );
 }
 
-function MenuPanel({ onClose }: { onClose: () => void }) {
-  const items: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; route: string }[] = [
-    { icon: "bookmark-outline", label: "Saved", route: "/settings/saved" },
-    { icon: "time-outline", label: "History", route: "/settings/history" },
-    { icon: "options-outline", label: "Interests", route: "/settings/interests" },
-    { icon: "settings-outline", label: "Settings", route: "/(tabs)/you" },
-    { icon: "help-circle-outline", label: "Help and support", route: "/settings/support" },
-  ];
-  return <View>{items.map((item) => <Pressable key={item.label} onPress={() => { onClose(); router.push(item.route as never); }} style={styles.row}><Ionicons name={item.icon} size={20} color="#fff" /><Text style={styles.rowTitle}>{item.label}</Text><Ionicons name="chevron-forward" size={17} color={colors.tertiary} /></Pressable>)}</View>;
-}
-
 function PanelRow({ icon, title, detail }: { icon: React.ComponentProps<typeof Ionicons>["name"]; title: string; detail: string }) {
   return <Pressable style={styles.row}><View style={styles.rowIcon}><Ionicons name={icon} size={18} color="#fff" /></View><View style={styles.rowCopy}><Text style={styles.rowTitle}>{title}</Text><Text style={styles.rowDetail}>{detail}</Text></View><View style={styles.unread} /></Pressable>;
 }
@@ -158,14 +144,26 @@ const styles = StyleSheet.create({
   header: { height: 96, paddingTop: 42, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#000", zIndex: 100 },
   overlay: { position: "absolute", top: 0, left: 0, right: 0, backgroundColor: "transparent" },
   brand: { width: 40, height: 40, alignItems: "flex-start", justifyContent: "center" },
-  actions: { flexDirection: "row", alignItems: "center", gap: 5 },
+  headerSearch: { flex: 1, height: 34, marginHorizontal: 14, borderRadius: 17, backgroundColor: "transparent", borderWidth: 1, borderColor: "rgba(255,255,255,.12)", flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 12 },
+  headerSearchText: { color: "rgba(255,255,255,.45)", fontSize: 12 },
   button: { width: 37, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   buttonActive: { backgroundColor: "#1a1a1a" },
+  badge: { position: "absolute", top: 4, right: 2, minWidth: 14, height: 14, paddingHorizontal: 3, borderRadius: 7, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  badgeText: { color: "#000", fontSize: 8, fontWeight: "800" },
   modalScreen: { flex: 1, backgroundColor: "#000" },
   modalNav: { height: 96, paddingTop: 42, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#000" },
+  modalBack: { width: 32, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
+  modalSearch: { flex: 1, height: 36, marginLeft: 7, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,.14)', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12 },
+  modalSearchInput: { flex: 1, height: 36, color: '#fff', fontSize: 13 },
+  compose: { width: 37, height: 40, marginLeft: 7, alignItems: 'flex-end', justifyContent: 'center' },
   panel: { flex: 1, backgroundColor: "#000", borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 15 },
   panelTop: { height: 45, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   panelTitle: { color: "#fff", fontSize: 20, fontWeight: "700" },
+  inboxTabs: { height: 48, flexDirection: 'row', gap: 25, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 5 },
+  inboxTab: { height: 48, justifyContent: 'center' },
+  inboxTabText: { color: 'rgba(255,255,255,.48)', fontSize: 14, fontWeight: '600' },
+  inboxTabTextActive: { color: '#fff', fontWeight: '700' },
+  inboxTabLine: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 2, borderRadius: 1, backgroundColor: '#fff' },
   closeButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   searchBox: { height: 48, borderRadius: 13, backgroundColor: "#111", borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 13, marginTop: 8 },
   searchInput: { color: "#fff", fontSize: 14, flex: 1, height: 48 },

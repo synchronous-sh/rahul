@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
 import { colors } from '@/constants/theme';
+import { askAI } from '@/lib/ai';
 
 export type MorePanelAction = {
   label: string;
@@ -27,6 +29,16 @@ export function MorePanel({
   actions: MorePanelAction[];
 }) {
   const top = edge === 'top';
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [asking, setAsking] = useState(false);
+  const submitQuestion = async () => {
+    const clean = question.trim(); if (!clean || asking) return;
+    setAsking(true); setAnswer('');
+    try { const result = await askAI(clean, `${title}\n${summary}`); setAnswer(result.answer); }
+    catch (error) { setAnswer(error instanceof Error ? error.message : 'Could not answer right now.'); }
+    finally { setAsking(false); }
+  };
   return (
     <Modal visible={visible} transparent animationType={top ? 'fade' : 'slide'} onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
@@ -35,14 +47,12 @@ export function MorePanel({
           <View style={styles.grabber} />
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.summary}>{summary}</Text>
-          <Pressable
-            style={styles.askRow}
-            onPress={() => Alert.alert('Ask AI', 'AI answers will appear here soon.')}
-          >
+          <View style={styles.askRow}>
             <Ionicons name="sparkles-outline" size={16} color={colors.white} />
-            <Text style={styles.askText}>Ask AI anything…</Text>
-            <Ionicons name="arrow-up-circle" size={20} color={colors.tertiary} />
-          </Pressable>
+            <TextInput value={question} onChangeText={setQuestion} onSubmitEditing={submitQuestion} returnKeyType="send" placeholder="Ask AI anything…" placeholderTextColor={colors.tertiary} style={styles.askInput} />
+            <Pressable onPress={submitQuestion} hitSlop={8}>{asking ? <ActivityIndicator size="small" color={colors.secondary} /> : <Ionicons name="arrow-up-circle" size={22} color={question.trim() ? colors.white : colors.tertiary} />}</Pressable>
+          </View>
+          {Boolean(answer) && <ScrollView style={styles.answerBox} nestedScrollEnabled><Text style={styles.answer}>{answer}</Text></ScrollView>}
           <View style={styles.actions}>
             {actions.map((action) => (
               <Pressable
@@ -102,7 +112,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 6,
   },
-  askText: { flex: 1, color: colors.tertiary, fontSize: 14 },
+  askInput: { flex: 1, color: colors.white, fontSize: 14, paddingVertical: 0 },
+  answerBox: { maxHeight: 160, marginTop: 7, marginBottom: 8, borderLeftWidth: 2, borderLeftColor: '#fff', paddingLeft: 12 },
+  answer: { color: colors.secondary, fontSize: 13, lineHeight: 19 },
   actions: { marginTop: 10 },
   actionRow: {
     height: 52,
