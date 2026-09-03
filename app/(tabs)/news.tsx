@@ -21,8 +21,28 @@ export default function News() {
     </ScrollView>
     {loading && <ActivityIndicator color="#fff" style={styles.loader} />}
     {!loading && failed && <Text style={styles.empty}>Live articles are temporarily unavailable. Pull down to retry.</Text>}
-    {visible.map((story, i) => <Pressable key={story.id} style={styles.story} onPress={() => router.push(`/story/${story.id}`)}><Image source={story.image} style={[styles.image, i > 0 && { height: 190 }]} contentFit="cover" /><Text style={styles.kicker}>{story.category}</Text><Text style={styles.headline}>{story.title}</Text><Text style={styles.dek}>{story.dek}</Text><Text style={styles.meta}>{story.source}  ·  {story.time}</Text><Text style={styles.understand}>Understand this  →</Text></Pressable>)}
+    {!loading && visible[0] && (
+      <Pressable style={styles.hero} onPress={() => router.push(`/story/${visible[0].id}`)}>
+        <Image source={visible[0].image} style={styles.heroImage} contentFit="cover" />
+        <View style={styles.heroShade} />
+        <View style={styles.heroCopy}>
+          <Text style={styles.heroTitle} numberOfLines={2}>{visible[0].title}</Text>
+          <Text style={styles.heroMeta}>{visible[0].source.split(' · ')[0]}  ·  {visible[0].time}</Text>
+          <View style={styles.readButton}><Text style={styles.readButtonText}>Read</Text></View>
+        </View>
+      </Pressable>
+    )}
+    {!loading && visible.length > 1 && <Text style={styles.sectionTitle}>Top Stories</Text>}
+    {visible.slice(1).map((story) => (
+      <Pressable key={story.id} style={styles.story} onPress={() => router.push(`/story/${story.id}`)}>
+        <Image source={story.image} style={styles.image} contentFit="cover" />
+        <View style={styles.storyCopy}>
+          <Text style={styles.headline} numberOfLines={2} ellipsizeMode="tail">{story.title}</Text>
+          <Text style={styles.meta}>{story.source.split(' · ')[0]}  ·  {story.time}</Text>
+        </View>
+      </Pressable>
+    ))}
   </ScrollView></SafeAreaView>;
 }
 
-const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: '#000' }, content: { paddingHorizontal: 20, paddingBottom: 110 }, loader: { marginBottom: 20 }, empty: { color: colors.secondary, fontSize: 14, lineHeight: 21, paddingVertical: 40, textAlign: 'center' }, categories: { gap: 23, paddingTop: 7, paddingBottom: 22 }, categoryButton: { height: 34, flexDirection: 'row', alignItems: 'center', gap: 6 }, category: { color: colors.tertiary, fontSize: 14, fontWeight: '600' }, categoryActive: { color: '#fff' }, story: { paddingBottom: 30, marginBottom: 30, borderBottomWidth: 1, borderBottomColor: colors.border }, image: { height: 255, width: '100%', borderRadius: 4, backgroundColor: colors.card }, kicker: { color: colors.secondary, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', fontWeight: '700', marginTop: 16 }, headline: { color: '#fff', fontSize: 25, lineHeight: 29, fontWeight: '700', letterSpacing: -.4, marginTop: 7 }, dek: { color: 'rgba(255,255,255,.72)', fontSize: 16, lineHeight: 23, marginTop: 8 }, meta: { color: colors.tertiary, fontSize: 12, marginTop: 12 }, understand: { color: '#fff', fontSize: 14, fontWeight: '600', marginTop: 18 } });
+const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: '#000' }, content: { paddingHorizontal: 20, paddingBottom: 110 }, loader: { marginBottom: 20 }, empty: { color: colors.secondary, fontSize: 14, lineHeight: 21, paddingVertical: 40, textAlign: 'center' }, categories: { gap: 23, paddingTop: 7, paddingBottom: 22 }, categoryButton: { height: 34, flexDirection: 'row', alignItems: 'center', gap: 6 }, category: { color: colors.tertiary, fontSize: 14, fontWeight: '600' }, categoryActive: { color: '#fff' }, hero: { height: 248, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.card, marginBottom: 24 }, heroImage: { ...StyleSheet.absoluteFillObject }, heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,.38)' }, heroCopy: { position: 'absolute', left: 18, right: 18, bottom: 17, alignItems: 'flex-start' }, heroTitle: { color: '#fff', fontSize: 18, lineHeight: 22, fontWeight: '700', letterSpacing: -.25 }, heroMeta: { color: 'rgba(255,255,255,.62)', fontSize: 9, marginTop: 6 }, readButton: { minWidth: 66, height: 32, paddingHorizontal: 18, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginTop: 11 }, readButtonText: { color: '#000', fontSize: 12, fontWeight: '700' }, sectionTitle: { color: '#fff', fontSize: 19, lineHeight: 24, fontWeight: '700', marginBottom: 5 }, story: { minHeight: 92, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 9 }, storyCopy: { flex: 1, justifyContent: 'center' }, image: { width: 86, height: 64, borderRadius: 8, backgroundColor: colors.card }, headline: { color: '#fff', fontSize: 13, lineHeight: 17, fontWeight: '600' }, meta: { color: colors.tertiary, fontSize: 9, marginTop: 5 } });

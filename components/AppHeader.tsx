@@ -76,15 +76,15 @@ function InboxButton({ active, onPress }: { active: boolean; onPress: () => void
 }
 
 function HeaderPanel({ panel, query, onClose }: { panel: Panel; query: string; onClose: () => void }) {
-  const [inboxTab, setInboxTab] = useState<'notifications' | 'messages'>('notifications');
+  const [inboxTab, setInboxTab] = useState<'notifications' | 'messages' | 'channels'>('notifications');
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, panel === "search" && styles.searchPanel]}>
       {panel === "search" && <SearchPanel query={query} onClose={onClose} />}
       {panel === "inbox" && <>
         <View style={styles.inboxTabs}>
-          {(['notifications', 'messages'] as const).map(tab => <Pressable key={tab} onPress={() => setInboxTab(tab)} style={styles.inboxTab}><Text style={[styles.inboxTabText, inboxTab === tab && styles.inboxTabTextActive]}>{tab === 'notifications' ? 'Notifications' : 'Messages'}</Text>{inboxTab === tab && <View style={styles.inboxTabLine} />}</Pressable>)}
+          {(['notifications', 'messages', 'channels'] as const).map(tab => <Pressable key={tab} onPress={() => setInboxTab(tab)} style={styles.inboxTab}><Text style={[styles.inboxTabText, inboxTab === tab && styles.inboxTabTextActive]}>{tab[0].toUpperCase() + tab.slice(1)}</Text></Pressable>)}
         </View>
-        {inboxTab === 'notifications' ? <NotificationsPanel /> : <MessagesPanel />}
+        {inboxTab === 'notifications' ? <NotificationsPanel /> : inboxTab === 'messages' ? <MessagesPanel /> : <ChannelsPanel />}
       </>}
     </View>
   );
@@ -100,12 +100,11 @@ function SearchPanel({ query, onClose }: { query: string; onClose: () => void })
   ];
   return (
     <View>
-      <Text style={styles.eyebrow}>{query ? "RESULTS" : "SUGGESTED"}</Text>
+      <Text style={styles.eyebrow}>{query ? "RESULTS" : "RECENTLY SEARCHED"}</Text>
       {suggestions.filter((item) => item.label.toLowerCase().includes(query.toLowerCase())).map((item) => (
-        <Pressable key={item.label} onPress={() => { onClose(); router.push(item.route as never); }} style={styles.row}>
-          <Ionicons name="search-outline" size={18} color="#fff" />
+        <Pressable key={item.label} onPress={() => { onClose(); router.push(item.route as never); }} style={styles.searchRow}>
           <Text style={styles.rowTitle}>{item.label}</Text>
-          <Ionicons name="arrow-forward" size={17} color={colors.tertiary} />
+          <Ionicons name="arrow-up-outline" size={16} color="rgba(255,255,255,.56)" style={{ transform: [{ rotate: '45deg' }] }} />
         </Pressable>
       ))}
     </View>
@@ -136,6 +135,17 @@ function MessagesPanel() {
   );
 }
 
+function ChannelsPanel() {
+  return (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={styles.emptyIcon}><Ionicons name="people-outline" size={25} color="#fff" /></View>
+      <Text style={styles.emptyTitle}>Your channels</Text>
+      <Text style={styles.emptyCopy}>Course channels and shared discussions will appear here.</Text>
+      <Pressable style={styles.primaryAction}><Text style={styles.primaryActionText}>Create a channel</Text></Pressable>
+    </ScrollView>
+  );
+}
+
 function PanelRow({ icon, title, detail }: { icon: React.ComponentProps<typeof Ionicons>["name"]; title: string; detail: string }) {
   return <Pressable style={styles.row}><View style={styles.rowIcon}><Ionicons name={icon} size={18} color="#fff" /></View><View style={styles.rowCopy}><Text style={styles.rowTitle}>{title}</Text><Text style={styles.rowDetail}>{detail}</Text></View><View style={styles.unread} /></Pressable>;
 }
@@ -156,23 +166,24 @@ const styles = StyleSheet.create({
   modalSearch: { flex: 1, height: 36, marginLeft: 7, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,.14)', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12 },
   modalSearchInput: { flex: 1, height: 36, color: '#fff', fontSize: 13 },
   compose: { width: 37, height: 40, marginLeft: 7, alignItems: 'flex-end', justifyContent: 'center' },
-  panel: { flex: 1, backgroundColor: "#000", borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingTop: 15 },
+  panel: { flex: 1, backgroundColor: "#000", paddingHorizontal: 20, paddingTop: 15 },
+  searchPanel: { borderTopWidth: 0 },
   panelTop: { height: 45, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   panelTitle: { color: "#fff", fontSize: 20, fontWeight: "700" },
-  inboxTabs: { height: 48, flexDirection: 'row', gap: 25, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 5 },
+  inboxTabs: { height: 52, flexDirection: 'row', alignItems: 'center', gap: 28, marginBottom: 12 },
   inboxTab: { height: 48, justifyContent: 'center' },
   inboxTabText: { color: 'rgba(255,255,255,.48)', fontSize: 14, fontWeight: '600' },
   inboxTabTextActive: { color: '#fff', fontWeight: '700' },
-  inboxTabLine: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 2, borderRadius: 1, backgroundColor: '#fff' },
   closeButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   searchBox: { height: 48, borderRadius: 13, backgroundColor: "#111", borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 13, marginTop: 8 },
   searchInput: { color: "#fff", fontSize: 14, flex: 1, height: 48 },
   eyebrow: { color: colors.secondary, fontSize: 9, fontWeight: "800", letterSpacing: 1.5, marginTop: 25, marginBottom: 8 },
-  row: { minHeight: 64, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", gap: 13 },
+  row: { minHeight: 78, paddingVertical: 13, flexDirection: "row", alignItems: "center", gap: 14 },
+  searchRow: { minHeight: 64, paddingVertical: 13, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   rowIcon: { width: 35, height: 35, borderRadius: 18, backgroundColor: "#111", borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
-  rowCopy: { flex: 1 },
-  rowTitle: { color: "#fff", fontSize: 14, fontWeight: "600", flex: 1 },
-  rowDetail: { color: colors.secondary, fontSize: 11, marginTop: 4 },
+  rowCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
+  rowTitle: { color: "#fff", fontSize: 14, lineHeight: 19, fontWeight: "600" },
+  rowDetail: { color: colors.secondary, fontSize: 11, lineHeight: 16, marginTop: 5 },
   unread: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" },
   emptyIcon: { width: 54, height: 54, borderRadius: 27, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center", alignSelf: "center", marginTop: 80 },
   emptyTitle: { color: "#fff", fontSize: 20, fontWeight: "700", textAlign: "center", marginTop: 19 },

@@ -10,6 +10,29 @@ const DETAIL_PREFIX = 'synchronous-news-story:';
 const LIVE_INDEX_KEY = 'synchronous-news-live-index-v1';
 const CACHE_MS = 10 * 60 * 1000;
 
+const normalizedStoryKey = (story: NewsStory) => {
+  if (story.link) {
+    try {
+      const url = new URL(story.link);
+      return `${url.hostname.replace(/^www\./, '')}${url.pathname.replace(/\/$/, '')}`.toLowerCase();
+    } catch { /* fall through to title */ }
+  }
+  return story.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+};
+
+const uniqueStories = (stories: NewsStory[]) => {
+  const seen = new Set<string>();
+  const seenImages = new Set<string>();
+  return stories.filter((story) => {
+    const key = normalizedStoryKey(story);
+    const imageKey = typeof story.image === 'string' ? story.image.split('?')[0] : '';
+    if (seen.has(key) || (imageKey && seenImages.has(imageKey))) return false;
+    seen.add(key);
+    if (imageKey) seenImages.add(imageKey);
+    return true;
+  });
+};
+
 const categoryLabel = (values: string[], requested?: string): Story['category'] => {
   const supported: Story['category'][] = ['For You', 'U.S.', 'World', 'History', 'Business', 'Markets', 'Technology', 'Science', 'Health', 'Politics', 'Culture', 'Music', 'Lifestyle', 'Entertainment', 'Food', 'Sports'];
   if (requested && supported.includes(requested as Story['category'])) return requested as Story['category'];
@@ -42,7 +65,7 @@ export async function fetchNews(category = 'For You', force = false): Promise<Ne
   const cached = await AsyncStorage.getItem(cacheKey);
   if (cached && !force) {
     const parsed = JSON.parse(cached) as { savedAt: number; stories: NewsStory[] };
-    if (Date.now() - parsed.savedAt < CACHE_MS) return parsed.stories;
+    if (Date.now() - parsed.savedAt < CACHE_MS) return uniqueStories(parsed.stories);
   }
 
   await ensureSession();
@@ -64,7 +87,7 @@ export async function fetchNews(category = 'For You', force = false): Promise<Ne
     if (cached) return (JSON.parse(cached) as { stories: NewsStory[] }).stories;
     throw error;
   }
-  const stories: NewsStory[] = (data?.articles ?? []).filter((article) => {
+  const stories: NewsStory[] = uniqueStories((data?.articles ?? []).filter((article) => {
     try {
       const url = new URL(article.link);
       return (url.protocol === 'https:' || url.protocol === 'http:') && Boolean(url.hostname);
@@ -83,11 +106,11 @@ export async function fetchNews(category = 'For You', force = false): Promise<Ne
     link: article.link,
     content: article.content,
     publishedAt: article.publishedAt,
-  }));
+  })));
   await AsyncStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), stories }));
   await Promise.all(stories.map((story) => AsyncStorage.setItem(`${DETAIL_PREFIX}${story.id}`, JSON.stringify(story))));
   const previous = await getCachedNewsStories();
-  const merged = [...stories, ...previous].filter((story, index, all) => all.findIndex((item) => item.id === story.id) === index).slice(0, 100);
+  const merged = uniqueStories([...stories, ...previous]).slice(0, 100);
   await AsyncStorage.setItem(LIVE_INDEX_KEY, JSON.stringify(merged));
   return stories;
 }
@@ -101,6 +124,6 @@ export async function getCachedNewsStories(): Promise<NewsStory[]> {
   const raw = await AsyncStorage.getItem(LIVE_INDEX_KEY);
   if (!raw) return [];
   try {
-    return (JSON.parse(raw) as NewsStory[]).filter((story) => Boolean(story.link));
+    return uniqueStories((JSON.parse(raw) as NewsStory[]).filter((story) => Boolean(story.link)));
   } catch { return []; }
 }

@@ -159,9 +159,6 @@ function CourseShelf({ title, items }: { title: string; items: CourseCard[] }) {
     <View style={styles.shelf}>
       <View style={styles.shelfHeader}>
         <Text style={styles.shelfTitle}>{title}</Text>
-        <Pressable onPress={() => router.push("/(tabs)/search")} hitSlop={8}>
-          <Text style={styles.shelfLink}>See all ›</Text>
-        </Pressable>
       </View>
       <ScrollView
         horizontal
@@ -282,6 +279,15 @@ export default function Learn() {
         {shelves.map((shelf) => (
           <CourseShelf key={shelf.title} {...shelf} />
         ))}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View all courses"
+          hitSlop={10}
+          onPress={() => router.push({ pathname: "/library/[type]", params: { type: "courses" } })}
+          style={({ pressed }) => [styles.moreButton, pressed && { opacity: 0.55 }]}
+        >
+          <Text style={styles.moreText}>More ›</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -336,7 +342,8 @@ const styles = StyleSheet.create({
     marginBottom: 11,
   },
   shelfTitle: { color: "#fff", fontSize: 19, fontWeight: "700" },
-  shelfLink: { color: colors.secondary, fontSize: 12 },
+  moreButton: { alignSelf: "center", marginTop: 30, paddingHorizontal: 16, paddingVertical: 8 },
+  moreText: { color: colors.secondary, fontSize: 13, fontWeight: "600", textAlign: "center" },
   row: { paddingHorizontal: 20, gap: 11 },
   courseCard: { width: 166 },
   courseImage: {

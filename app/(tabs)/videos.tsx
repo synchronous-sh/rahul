@@ -20,6 +20,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { CommentsPanel } from "@/components/CommentsPanel";
 import { NewsShortMedia } from "@/components/NewsShortMedia";
 import { MorePanel } from "@/components/MorePanel";
+import { ListenButton } from "@/components/ListenButton";
 import { colors } from "@/constants/theme";
 import { fetchNews, getCachedNewsStory } from "@/lib/news";
 import { buildNewsShort, type NewsShort } from "@/lib/newsShorts";
@@ -38,6 +39,15 @@ const categories = [
   "Food",
   "Sports",
 ];
+
+function learningPathFor(category: string) {
+  if (category === "Business") return "business";
+  if (category === "Technology") return "technology";
+  if (category === "Science") return "science";
+  if (category === "History") return "history";
+  if (category === "U.S." || category === "World") return "history";
+  return "finance";
+}
 
 function FeedAction({
   icon,
@@ -125,6 +135,9 @@ export default function Videos() {
         <View style={styles.page}>
           <NewsShortMedia item={item} active={index === active} />
           <View style={styles.shade} />
+          <View style={styles.voiceControl}>
+            <ListenButton text={`${item.title}. ${item.dek}`} iconOnly iconSize={23} />
+          </View>
           <View style={styles.bottom}>
             <View style={styles.copy}>
               <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.86}>
@@ -154,11 +167,6 @@ export default function Videos() {
                 onPress={() => toggleSave(item.id)}
               />
               <FeedAction
-                label="Read news summary"
-                icon="book-outline"
-                onPress={() => router.push(`/story/${item.id}`)}
-              />
-              <FeedAction
                 label="Share"
                 icon="paper-plane-outline"
                 onPress={() =>
@@ -178,8 +186,7 @@ export default function Videos() {
                   pressed && { transform: [{ scale: 0.88 }] },
                 ]}
               >
-                <View style={styles.detailsLineTop} />
-                <View style={styles.detailsLineBottom} />
+                <Ionicons name="ellipsis-horizontal" size={23} color="rgba(255,255,255,.96)" />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -256,11 +263,13 @@ export default function Videos() {
         title="About this video"
         summary={moreFor?.dek ?? ""}
         actions={[
-          { label: "Voice", icon: "mic-outline", onPress: () => { setMoreFor(null); router.push('/settings/read-aloud'); } },
-          { label: "Speed", icon: "speedometer-outline", onPress: () => { setMoreFor(null); router.push('/settings/read-aloud'); } },
+          { label: "Voice", icon: "mic-outline", onPress: () => { setMoreFor(null); router.push('/settings/read-aloud?only=voice'); } },
+          { label: "Speed", icon: "speedometer-outline", onPress: () => { setMoreFor(null); router.push('/settings/read-aloud?only=speed'); } },
           { label: "Autoscroll", icon: "play-skip-forward-outline", onPress: () => placeholder("Autoscroll") },
           { label: "Interested", icon: "thumbs-up-outline", onPress: () => placeholder("Interested") },
           { label: "Not interested", icon: "thumbs-down-outline", onPress: () => placeholder("Not interested") },
+          { label: "Study this topic", icon: "book-outline", onPress: () => { if (moreFor) router.push(`/path/${learningPathFor(moreFor.category)}`); setMoreFor(null); } },
+          { label: "Read article", icon: "newspaper-outline", onPress: () => { if (moreFor) router.push(`/story/${moreFor.id}`); setMoreFor(null); } },
         ]}
       />
     </View>
@@ -281,6 +290,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   categoryContent: { paddingHorizontal: 17, gap: 22 },
+  voiceControl: { position: 'absolute', zIndex: 21, top: 151, right: 18, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   categoryButton: {
     height: 42,
     justifyContent: "center",
@@ -306,7 +316,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 18,
     right: 9,
-    bottom: 88,
+    bottom: 104,
     height: 116,
     flexDirection: "row",
     alignItems: "flex-end",
@@ -351,9 +361,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   actionCount: { color: "#fff", fontSize: 11, fontWeight: "600", marginTop: 1 },
-  detailsAction: { width: 44, height: 35, alignItems: "center", justifyContent: "center", gap: 5 },
-  detailsLineTop: { width: 23, height: 2, borderRadius: 1, backgroundColor: "rgba(255,255,255,.96)" },
-  detailsLineBottom: { width: 14, height: 2, borderRadius: 1, backgroundColor: "rgba(255,255,255,.96)" },
+  detailsAction: { width: 44, height: 35, alignItems: "center", justifyContent: "center" },
   sourceBadge: { width: 48, alignItems: "center", marginTop: 2 },
   sourceAvatar: { width: 29, height: 29, borderRadius: 7, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,.8)" },
   sourceLetter: { color: "#000", fontSize: 11, fontWeight: "800" },
