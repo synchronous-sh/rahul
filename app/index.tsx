@@ -26,11 +26,12 @@ export default function Index() {
     return () => { active = false; };
   }, []);
 
-  return <View style={styles.screen}><BrandMark size={72} /><Text style={styles.name}>SYNCHRONOUS</Text><ActivityIndicator style={styles.loader} color={colors.secondary} size="small" /></View>;
+  return <View style={styles.screen}><View style={styles.lockup}><BrandMark size={58} /><Text style={styles.name}>SYNCHRONOUS</Text></View><ActivityIndicator style={styles.loader} color={colors.secondary} size="small" /></View>;
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
-  name: { color: colors.white, fontSize: 12, fontWeight: '700', letterSpacing: 4, marginTop: 20, marginLeft: 4 },
+  lockup: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
+  name: { color: colors.white, fontSize: 14, fontWeight: '700', letterSpacing: 4 },
   loader: { position: 'absolute', bottom: 72 },
 });
